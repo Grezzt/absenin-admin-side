@@ -19,23 +19,46 @@ class UserController extends Controller
    * Display a listing of users.
    * GET /api/users
    */
-  public function index()
+  public function index(Request $request)
   {
     try {
       $users = $this->userModel->all();
 
-      return response()->json([
-        'success' => true,
-        'message' => 'Users retrieved successfully',
-        'data' => $users,
-        'count' => count($users)
-      ], 200);
+      // If request is API (wants JSON)
+      if ($request->wantsJson() || $request->is('api/*')) {
+        return response()->json([
+          'success' => true,
+          'message' => 'Users retrieved successfully',
+          'data' => $users,
+          'count' => count($users)
+        ], 200);
+      }
+
+      // If request is web (wants HTML)
+      return view('users.index', ['users' => $users]);
     } catch (\Exception $e) {
-      return response()->json([
-        'success' => false,
-        'message' => 'Failed to retrieve users',
-        'error' => $e->getMessage()
-      ], 500);
+      if ($request->wantsJson() || $request->is('api/*')) {
+        return response()->json([
+          'success' => false,
+          'message' => 'Failed to retrieve users',
+          'error' => $e->getMessage()
+        ], 500);
+      }
+
+      return back()->with('error', 'Failed to retrieve users: ' . $e->getMessage());
+    }
+  }
+
+  /**
+   * Show web view for managing users (dashboard)
+   */
+  public function dashboard()
+  {
+    try {
+      $users = $this->userModel->all();
+      return view('users.dashboard', ['users' => $users]);
+    } catch (\Exception $e) {
+      return back()->with('error', 'Failed to retrieve users: ' . $e->getMessage());
     }
   }
 
