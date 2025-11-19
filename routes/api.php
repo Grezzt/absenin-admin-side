@@ -3,10 +3,23 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Services\FirebaseService;
+use App\Http\Controllers\UserController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
+
+// User CRUD Routes
+Route::prefix('users')->group(function () {
+    Route::get('/', [UserController::class, 'index']);                    // Get all users
+    Route::post('/', [UserController::class, 'store']);                   // Create user
+    Route::get('/nip/{nip}', [UserController::class, 'findByNip']);      // Find by NIP
+    Route::get('/email/{email}', [UserController::class, 'findByEmail']); // Find by email
+    Route::get('/{id}', [UserController::class, 'show']);                // Get user by ID
+    Route::put('/{id}', [UserController::class, 'update']);              // Update user
+    Route::patch('/{id}', [UserController::class, 'update']);            // Update user (partial)
+    Route::delete('/{id}', [UserController::class, 'destroy']);          // Delete user
+});
 
 // Test Firebase Connection
 Route::get('/test-firebase', function () {
