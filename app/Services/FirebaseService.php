@@ -24,10 +24,16 @@ class FirebaseService
   protected function getAccessToken()
   {
     try {
-      $serviceAccountPath = storage_path('app/firebase/absensi-pegawai-app-firebase-adminsdk-fbsvc-9f7f35dcee.json');
+      // Gunakan base_path karena di .env sudah menyertakan folder 'storage/'
+      $serviceAccountPath = base_path(env('FIREBASE_CREDENTIALS'));
 
       if (!file_exists($serviceAccountPath)) {
-        throw new \Exception("Service account file not found");
+        // Fallback: Coba cek jika path di .env tidak menyertakan 'storage/'
+        $serviceAccountPath = storage_path(env('FIREBASE_CREDENTIALS'));
+        
+        if (!file_exists($serviceAccountPath)) {
+             throw new \Exception("Service account file not found at: " . base_path(env('FIREBASE_CREDENTIALS')));
+        }
       }
 
       $serviceAccount = json_decode(file_get_contents($serviceAccountPath), true);
@@ -282,7 +288,10 @@ class FirebaseService
 
   protected function convertToFirestoreValue($value)
   {
-    if (is_string($value)) {
+    // Tambahkan blok ini di paling atas
+    if ($value instanceof \DateTimeInterface) {
+      return ['timestampValue' => $value->format('Y-m-d\TH:i:s\Z')];
+    } elseif (is_string($value)) {
       return ['stringValue' => $value];
     } elseif (is_int($value)) {
       return ['integerValue' => (string) $value];
@@ -304,7 +313,10 @@ class FirebaseService
     $formatted = [];
 
     foreach ($data as $key => $value) {
-      if (is_string($value)) {
+      // Tambahkan blok ini di paling atas loop
+      if ($value instanceof \DateTimeInterface) {
+        $formatted[$key] = ['timestampValue' => $value->format('Y-m-d\TH:i:s\Z')];
+      } elseif (is_string($value)) {
         $formatted[$key] = ['stringValue' => $value];
       } elseif (is_int($value)) {
         $formatted[$key] = ['integerValue' => (string) $value];

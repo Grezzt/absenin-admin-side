@@ -73,6 +73,7 @@ class UserController extends Controller
         'nip' => 'required|string',
         'email' => 'required|email',
         'fullName' => 'required|string',
+        'password' => 'required|string|min:6',
         'faceDataBase64' => 'nullable|string',
       ]);
 
@@ -93,7 +94,27 @@ class UserController extends Controller
         ], 409);
       }
 
-      $user = $this->userModel->create($request->all());
+      // 1. Create User in Firebase Authentication
+      try {
+        $auth = app('firebase.auth');
+        $userProperties = [
+            'email' => $request->email,
+            'emailVerified' => false,
+            'password' => $request->password,
+            'displayName' => $request->fullName,
+            'disabled' => false,
+        ];
+        $createdAuthUser = $auth->createUser($userProperties);
+        $uid = $createdAuthUser->uid;
+      } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to create Firebase Auth user: ' . $e->getMessage()
+        ], 500);
+      }
+
+      // 2. Create User Document in Firestore using the UID
+      $user = $this->userModel->create($request->all(), $uid);
 
       return response()->json([
         'success' => true,

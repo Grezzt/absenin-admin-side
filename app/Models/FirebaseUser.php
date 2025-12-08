@@ -34,13 +34,14 @@ class FirebaseUser
   /**
    * Create a new user
    */
-  public function create(array $data)
+  public function create(array $data, $uid = null)
   {
     // Validation
     $validator = Validator::make($data, [
       'nip' => 'required|string',
       'email' => 'required|email',
       'fullName' => 'required|string',
+      'password' => 'required|string|min:6',
       'faceDataBase64' => 'nullable|string',
     ]);
 
@@ -53,15 +54,18 @@ class FirebaseUser
       'nip' => $data['nip'],
       'email' => $data['email'],
       'fullName' => $data['fullName'],
+      'passwordHash' => password_hash($data['password'], PASSWORD_BCRYPT),
       'faceDataBase64' => $data['faceDataBase64'] ?? '',
-      'createdAt' => now()->toIso8601String(),
+      'createdAt' => now(), // Menggunakan object DateTime/Carbon agar dihandle oleh fix sebelumnya
+      'isActive' => true,
+      'role' => 'user',
       'faceRegistrationTimestamp' => isset($data['faceDataBase64']) && !empty($data['faceDataBase64'])
-        ? now()->toIso8601String()
+        ? now()
         : null,
     ];
 
-    // Use NIP as document ID (you can change this to auto-generate ID)
-    $documentId = $data['nip'];
+    // Use UID if provided, otherwise fallback to NIP (not recommended for Auth integration)
+    $documentId = $uid ?? $data['nip'];
 
     return $this->firebaseService->createDocument($this->collection, $userData, $documentId);
   }

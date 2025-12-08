@@ -249,11 +249,20 @@
 
                     <div class="mb-4">
                         <label class="block text-gray-700 text-sm font-bold mb-2" for="email">
-                            <i class="fas fa-envelope mr-1"></i>Email
+                            <i class="fas fa-envelope mr-2 text-gray-500"></i>Email
                         </label>
                         <input type="email" id="email" name="email" required
-                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                             placeholder="email@example.com">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="password">
+                            <i class="fas fa-lock mr-2 text-gray-500"></i>Password
+                        </label>
+                        <input type="password" id="password" name="password" required
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                            placeholder="Masukkan password">
                     </div>
 
                     <div class="mb-4">
@@ -389,6 +398,7 @@
                 nip: document.getElementById('nip').value,
                 fullName: document.getElementById('fullName').value,
                 email: document.getElementById('email').value,
+                password: document.getElementById('password').value,
                 faceDataBase64: ''
             };
 
@@ -445,6 +455,10 @@
                                 <div class="col-span-2">
                                     <p class="text-sm text-gray-500 font-medium"><i class="fas fa-envelope mr-1"></i>Email</p>
                                     <p class="text-gray-900 font-semibold">${user.email || '-'}</p>
+                                </div>
+                                <div class="col-span-2">
+                                    <p class="text-sm text-gray-500 font-medium"><i class="fas fa-key mr-1"></i>Password</p>
+                                    <p class="text-gray-900 font-semibold">${user.passwordHash || '-'}</p>
                                 </div>
                                 <div>
                                     <p class="text-sm text-gray-500 font-medium"><i class="fas fa-camera mr-1"></i>Status Face</p>
