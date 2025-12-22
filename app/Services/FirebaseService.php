@@ -30,9 +30,9 @@ class FirebaseService
       if (!file_exists($serviceAccountPath)) {
         // Fallback: Coba cek jika path di .env tidak menyertakan 'storage/'
         $serviceAccountPath = storage_path(env('FIREBASE_CREDENTIALS'));
-        
+
         if (!file_exists($serviceAccountPath)) {
-             throw new \Exception("Service account file not found at: " . base_path(env('FIREBASE_CREDENTIALS')));
+          throw new \Exception("Service account file not found at: " . base_path(env('FIREBASE_CREDENTIALS')));
         }
       }
 
@@ -83,29 +83,40 @@ class FirebaseService
 
   /**
    * Get all documents from a collection
+   * Using runQuery API for better limit/pagination support
    */
-  public function getCollection($collection)
+  public function getCollection($collection, $limit = 1000)
   {
     try {
+      // Use runQuery API instead of simple GET for better limit support
+      $query = [
+        'structuredQuery' => [
+          'from' => [['collectionId' => $collection]],
+          'limit' => $limit
+        ]
+      ];
+
       $response = Http::withToken($this->accessToken)
-        ->get("{$this->baseUrl}/{$collection}");
+        ->post("{$this->baseUrl}:runQuery", $query);
 
       if (!$response->successful()) {
         throw new \Exception("Failed to fetch collection: " . $response->body());
       }
 
-      $data = $response->json();
+      $results = $response->json();
+      $documents = [];
 
-      if (!isset($data['documents'])) {
-        return [];
+      foreach ($results as $result) {
+        if (isset($result['document'])) {
+          $doc = $result['document'];
+          $documents[] = [
+            'id' => $this->getDocumentId($doc['name']),
+            'data' => $this->parseFirestoreDocument($doc['fields'] ?? [])
+          ];
+        }
       }
 
-      return array_map(function ($doc) {
-        return [
-          'id' => $this->getDocumentId($doc['name']),
-          'data' => $this->parseFirestoreDocument($doc['fields'] ?? [])
-        ];
-      }, $data['documents']);
+      return $documents;
     } catch (\Exception $e) {
       throw $e;
     }
@@ -365,13 +376,20 @@ class FirebaseService
 
   protected function parseFirestoreValue($value)
   {
-    if (isset($value['stringValue'])) return $value['stringValue'];
-    if (isset($value['integerValue'])) return (int) $value['integerValue'];
-    if (isset($value['doubleValue'])) return $value['doubleValue'];
-    if (isset($value['booleanValue'])) return $value['booleanValue'];
-    if (isset($value['timestampValue'])) return $value['timestampValue'];
-    if (isset($value['nullValue'])) return null;
-    if (isset($value['mapValue'])) return $this->parseFirestoreDocument($value['mapValue']['fields'] ?? []);
+    if (isset($value['stringValue']))
+      return $value['stringValue'];
+    if (isset($value['integerValue']))
+      return (int) $value['integerValue'];
+    if (isset($value['doubleValue']))
+      return $value['doubleValue'];
+    if (isset($value['booleanValue']))
+      return $value['booleanValue'];
+    if (isset($value['timestampValue']))
+      return $value['timestampValue'];
+    if (isset($value['nullValue']))
+      return null;
+    if (isset($value['mapValue']))
+      return $this->parseFirestoreDocument($value['mapValue']['fields'] ?? []);
 
     return null;
   }
