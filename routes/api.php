@@ -4,6 +4,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Services\FirebaseService;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\LocationController;
+use App\Http\Controllers\AttendanceController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -19,6 +21,21 @@ Route::prefix('users')->group(function () {
     Route::put('/{id}', [UserController::class, 'update']);              // Update user
     Route::patch('/{id}', [UserController::class, 'update']);            // Update user (partial)
     Route::delete('/{id}', [UserController::class, 'destroy']);          // Delete user
+});
+
+// Location CRUD Routes
+Route::prefix('locations')->group(function () {
+    Route::get('/', [LocationController::class, 'index']);           // Get all locations
+    Route::post('/', [LocationController::class, 'store']);          // Create location
+    Route::get('/{id}', [LocationController::class, 'show']);        // Get location by ID
+    Route::put('/{id}', [LocationController::class, 'update']);      // Update location
+    Route::patch('/{id}', [LocationController::class, 'update']);    // Update location (partial)
+    Route::delete('/{id}', [LocationController::class, 'destroy']);  // Delete location
+});
+
+// Attendance Routes
+Route::prefix('attendance')->group(function () {
+    Route::get('/user/{userId}', [AttendanceController::class, 'getUserAttendance']); // Get user attendance history from subcollection
 });
 
 // Test Firebase Connection

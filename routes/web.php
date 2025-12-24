@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\LocationController;
 
 // Redirect root to users dashboard
 Route::get('/', function () {

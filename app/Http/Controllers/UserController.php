@@ -56,9 +56,17 @@ class UserController extends Controller
   {
     try {
       $users = $this->userModel->all();
-      return view('users.dashboard', ['users' => $users]);
+
+      // Get locations for unified admin dashboard
+      $locationModel = new \App\Models\FirebaseLocation();
+      $locations = $locationModel->all();
+
+      return view('users.dashboard', [
+        'users' => $users,
+        'locations' => $locations
+      ]);
     } catch (\Exception $e) {
-      return back()->with('error', 'Failed to retrieve users: ' . $e->getMessage());
+      return back()->with('error', 'Failed to retrieve data: ' . $e->getMessage());
     }
   }
 
@@ -98,18 +106,18 @@ class UserController extends Controller
       try {
         $auth = app('firebase.auth');
         $userProperties = [
-            'email' => $request->email,
-            'emailVerified' => false,
-            'password' => $request->password,
-            'displayName' => $request->fullName,
-            'disabled' => false,
+          'email' => $request->email,
+          'emailVerified' => false,
+          'password' => $request->password,
+          'displayName' => $request->fullName,
+          'disabled' => false,
         ];
         $createdAuthUser = $auth->createUser($userProperties);
         $uid = $createdAuthUser->uid;
       } catch (\Exception $e) {
         return response()->json([
-            'success' => false,
-            'message' => 'Failed to create Firebase Auth user: ' . $e->getMessage()
+          'success' => false,
+          'message' => 'Failed to create Firebase Auth user: ' . $e->getMessage()
         ], 500);
       }
 
@@ -191,7 +199,60 @@ class UserController extends Controller
         ], 404);
       }
 
-      $user = $this->userModel->update($id, $request->all());
+      // Check for duplicate NIP (exclude current user)
+      if ($request->has('nip')) {
+        $allUsers = $this->userModel->all();
+        foreach ($allUsers as $user) {
+          if ($user['id'] !== $id && strtolower(trim($user['data']['nip'] ?? '')) === strtolower(trim($request->nip))) {
+            return response()->json([
+              'success' => false,
+              'message' => 'NIP sudah digunakan oleh user lain'
+            ], 422);
+          }
+        }
+      }
+
+      // Check for duplicate email (exclude current user)
+      if ($request->has('email')) {
+        $allUsers = $this->userModel->all();
+        foreach ($allUsers as $user) {
+          if ($user['id'] !== $id && strtolower(trim($user['data']['email'] ?? '')) === strtolower(trim($request->email))) {
+            return response()->json([
+              'success' => false,
+              'message' => 'Email sudah digunakan oleh user lain'
+            ], 422);
+          }
+        }
+      }
+
+      // Get existing user data to preserve fields not being updated
+      $existingData = $existingUser['data'] ?? [];
+
+      // Prepare update data - only include fields that are actually being changed
+      $updateData = [];
+
+      if ($request->has('nip')) {
+        $updateData['nip'] = $request->nip;
+      }
+      if ($request->has('fullName')) {
+        $updateData['fullName'] = $request->fullName;
+      }
+      if ($request->has('email')) {
+        $updateData['email'] = $request->email;
+      }
+      if ($request->has('faceDataBase64')) {
+        $updateData['faceDataBase64'] = $request->faceDataBase64;
+      }
+
+      // Handle password update if provided
+      if ($request->has('password') && !empty($request->password)) {
+        $updateData['passwordHash'] = password_hash($request->password, PASSWORD_BCRYPT);
+      }
+
+      // Merge with existing data to preserve other fields (createdAt, role, isActive, etc.)
+      $finalData = array_merge($existingData, $updateData);
+
+      $user = $this->userModel->update($id, $finalData);
 
       return response()->json([
         'success' => true,

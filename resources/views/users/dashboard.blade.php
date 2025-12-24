@@ -112,7 +112,37 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #0284C7;
         }
+
+        /* Tab Button Styling */
+        .tab-button {
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .tab-button:not(.active):hover {
+            background-color: #E0F2FE !important;
+            color: #000 !important;
+            transform: translateY(-2px);
+        }
+
+        .tab-button.active {
+            background-color: #0EA5E9 !important;
+            color: white !important;
+        }
     </style>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'electric': '#0EA5E9',
+                        'vibrant-green': '#10B981',
+                    }
+                }
+            }
+        }
+    </script>
 </head>
 
 <body>
@@ -124,10 +154,10 @@
                     <div class="neo-card bg-electric p-3">
                         <i class="fas fa-users-cog text-2xl text-white"></i>
                     </div>
-                    <h1 class="text-3xl font-black text-black uppercase tracking-tight">Dashboard Kelola Users</h1>
+                    <h1 class="text-3xl font-black text-black uppercase tracking-tight">Admin Panel</h1>
                 </div>
                 <div class="flex items-center">
-                    <span class="text-sm font-bold text-black uppercase tracking-wide">Admin Panel</span>
+                    <span class="text-sm font-bold text-black uppercase tracking-wide">Dashboard</span>
                 </div>
             </div>
         </div>
@@ -154,316 +184,692 @@
             </div>
         @endif
 
-        <!-- Statistics Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="neo-card bg-white p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-xs font-black uppercase tracking-widest mb-2 text-black">Total Users</p>
-                        <p class="text-5xl font-black text-black">{{ count($users) }}</p>
-                    </div>
-                    <div class="neo-card bg-electric p-4">
-                        <i class="fas fa-users text-white text-4xl"></i>
+        <!-- Tab Navigation -->
+        <div class="neo-card bg-white mb-6">
+            <div class="flex border-b-4 border-black">
+                <button onclick="switchTab('users')" id="usersTab"
+                    class="tab-button active flex-1 px-6 py-4 text-center font-black uppercase text-lg border-r-3 border-black">
+                    <i class="fas fa-users mr-2"></i>Kelola Users
+                </button>
+                <button onclick="switchTab('locations')" id="locationsTab"
+                    class="tab-button flex-1 px-6 py-4 text-center font-black uppercase text-lg">
+                    <i class="fas fa-map-marked-alt mr-2"></i>Kelola Lokasi
+                </button>
+            </div>
+        </div>
+
+        <!-- Users Section -->
+        <div id="usersSection">
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="neo-card bg-white p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-black uppercase tracking-widest mb-2 text-black">Total Users</p>
+                            <p class="text-5xl font-black text-black">{{ count($users) }}</p>
+                        </div>
+                        <div class="neo-card bg-electric p-4">
+                            <i class="fas fa-users text-white text-4xl"></i>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="neo-card bg-white p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-xs font-black uppercase tracking-widest mb-2 text-black">Registered Face</p>
-                        <p class="text-5xl font-black text-black">
-                            {{ collect($users)->filter(function ($user) {
+                <div class="neo-card bg-white p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-black uppercase tracking-widest mb-2 text-black">Registered Face</p>
+                            <p class="text-5xl font-black text-black">
+                                {{ collect($users)->filter(function ($user) {
     return !empty($user['data']['faceDataBase64'] ?? ''); })->count() }}
-                        </p>
+                            </p>
+                        </div>
+                        <div class="neo-card bg-vibrant-green p-4">
+                            <i class="fas fa-user-check text-white text-4xl"></i>
+                        </div>
                     </div>
-                    <div class="neo-card bg-vibrant-green p-4">
-                        <i class="fas fa-user-check text-white text-4xl"></i>
+                </div>
+
+                <div class="neo-card bg-white p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-black uppercase tracking-widest mb-2 text-black">No Face Data</p>
+                            <p class="text-5xl font-black text-black">
+                                {{ collect($users)->filter(function ($user) {
+    return empty($user['data']['faceDataBase64'] ?? ''); })->count() }}
+                            </p>
+                        </div>
+                        <div class="neo-card bg-yellow-400 p-4">
+                            <i class="fas fa-user-slash text-black text-4xl"></i>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="neo-card bg-white p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-xs font-black uppercase tracking-widest mb-2 text-black">No Face Data</p>
-                        <p class="text-5xl font-black text-black">
-                            {{ collect($users)->filter(function ($user) {
-    return empty($user['data']['faceDataBase64'] ?? ''); })->count() }}
-                        </p>
+            <!-- Users Table -->
+            <div class="neo-card bg-white overflow-hidden">
+                <div class="px-6 py-5 border-b-4 border-black">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-2xl font-black text-black uppercase">
+                            <i class="fas fa-list mr-3"></i>Daftar Users
+                        </h2>
+                        <button onclick="openModal('addUserModal')"
+                            class="neo-button bg-electric text-white px-8 py-3 uppercase">
+                            <i class="fas fa-plus mr-2"></i>Tambah User
+                        </button>
                     </div>
-                    <div class="neo-card bg-yellow-400 p-4">
-                        <i class="fas fa-user-slash text-black text-4xl"></i>
-                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full">
+                        <thead class="border-b-4 border-black">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-black">
+                                    <i class="fas fa-id-badge mr-2"></i>NIP
+                                </th>
+                                <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-black">
+                                    <i class="fas fa-user mr-2"></i>Nama Lengkap
+                                </th>
+                                <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-black">
+                                    <i class="fas fa-envelope mr-2"></i>Email
+                                </th>
+                                <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-black">
+                                    <i class="fas fa-camera mr-2"></i>Status Face
+                                </th>
+                                <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-black">
+                                    <i class="fas fa-calendar mr-2"></i>Tanggal Dibuat
+                                </th>
+                                <th
+                                    class="px-6 py-4 text-center text-xs font-black uppercase tracking-widest text-black">
+                                    <i class="fas fa-cog mr-2"></i>Aksi
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($users as $user)
+                                <tr class="table-row-neo">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-black text-black">{{ $user['data']['nip'] ?? '-' }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="flex-shrink-0">
+                                                <div
+                                                    class="neo-card bg-electric h-12 w-12 flex items-center justify-center text-white font-black text-lg">
+                                                    {{ strtoupper(substr($user['data']['fullName'] ?? 'U', 0, 1)) }}
+                                                </div>
+                                            </div>
+                                            <div class="ml-4">
+                                                <div class="text-sm font-bold text-black">
+                                                    {{ $user['data']['fullName'] ?? '-' }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-semibold text-black">{{ $user['data']['email'] ?? '-' }}
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        @if (!empty($user['data']['faceDataBase64'] ?? ''))
+                                            <span
+                                                class="neo-card bg-vibrant-green px-4 py-2 inline-flex text-xs font-black uppercase text-white">
+                                                <i class="fas fa-check-circle mr-2"></i> Terdaftar
+                                            </span>
+                                        @else
+                                            <span
+                                                class="neo-card bg-red-500 px-4 py-2 inline-flex text-xs font-black uppercase text-white">
+                                                <i class="fas fa-times-circle mr-2"></i> Belum
+                                            </span>
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-black">
+                                        {{ isset($user['data']['createdAt']) ? \Carbon\Carbon::parse($user['data']['createdAt'])->format('d M Y H:i') : '-' }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
+                                        <button onclick="viewUser('{{ $user['id'] }}')"
+                                            class="neo-button bg-electric text-white px-3 py-2 mr-2" title="Lihat Detail">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button onclick="editUser('{{ $user['id'] }}')"
+                                            class="neo-button bg-yellow-400 text-black px-3 py-2 mr-2" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button
+                                            onclick="viewAttendance('{{ $user['id'] }}', '{{ addslashes($user['data']['fullName'] ?? 'User') }}')"
+                                            class="neo-button bg-vibrant-green text-white px-3 py-2 mr-2"
+                                            title="Riwayat Absensi">
+                                            <i class="fas fa-calendar-check"></i>
+                                        </button>
+                                        <button
+                                            onclick="deleteUser('{{ $user['id'] }}', '{{ addslashes($user['data']['fullName'] ?? 'User') }}')"
+                                            class="neo-button bg-red-500 text-white px-3 py-2" title="Hapus">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="px-6 py-16 text-center">
+                                        <div class="text-black">
+                                            <i class="fas fa-inbox text-8xl mb-4"></i>
+                                            <p class="text-2xl font-black uppercase">Belum ada data user</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
 
-        <!-- Users Table -->
-        <div class="neo-card bg-white overflow-hidden">
-            <div class="px-6 py-5 border-b-4 border-black">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-2xl font-black text-black uppercase">
-                        <i class="fas fa-list mr-3"></i>Daftar Users
-                    </h2>
-                    <button onclick="openModal('addUserModal')"
-                        class="neo-button bg-electric text-white px-8 py-3 uppercase">
-                        <i class="fas fa-plus mr-2"></i>Tambah User
+        <!-- Add User Modal -->
+        <div id="addUserModal"
+            class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50 p-4">
+            <div class="modal-overlay absolute w-full h-full bg-black/60"></div>
+
+            <div class="modal-container neo-modal bg-white w-full md:max-w-md mx-auto z-50 p-6">
+                <div class="flex justify-between items-center pb-3 border-b-4 border-black mb-4">
+                    <p class="text-xl font-black text-black uppercase">
+                        <i class="fas fa-user-plus mr-2"></i>Tambah User Baru
+                    </p>
+                    <button onclick="closeModal('addUserModal')"
+                        class="text-black hover:text-gray-700 text-3xl font-black">
+                        ×
+                    </button>
+                </div>
+
+                <form id="addUserForm" class="space-y-4">
+                    @csrf
+                    <div>
+                        <label class="block text-black text-sm font-black mb-2 uppercase">
+                            <i class="fas fa-id-badge mr-2"></i>NIP
+                        </label>
+                        <input type="text" id="nip" name="nip" required
+                            class="neo-input w-full py-3 px-4 text-black bg-white" placeholder="Masukkan NIP">
+                    </div>
+
+                    <div>
+                        <label class="block text-black text-sm font-black mb-2 uppercase">
+                            <i class="fas fa-user mr-2"></i>Nama Lengkap
+                        </label>
+                        <input type="text" id="fullName" name="fullName" required
+                            class="neo-input w-full py-3 px-4 text-black bg-white" placeholder="Masukkan nama lengkap">
+                    </div>
+
+                    <div>
+                        <label class="block text-black text-sm font-black mb-2 uppercase">
+                            <i class="fas fa-envelope mr-2"></i>Email
+                        </label>
+                        <input type="email" id="email" name="email" required
+                            class="neo-input w-full py-3 px-4 text-black bg-white" placeholder="email@example.com">
+                    </div>
+
+                    <div>
+                        <label class="block text-black text-sm font-black mb-2 uppercase">
+                            <i class="fas fa-lock mr-2"></i>Password
+                        </label>
+                        <input type="password" id="password" name="password" required
+                            class="neo-input w-full py-3 px-4 text-black bg-white" placeholder="Masukkan password">
+                    </div>
+
+                    <div class="neo-card bg-yellow-100 p-4">
+                        <label class="block text-black text-xs font-black uppercase">
+                            <i class="fas fa-camera mr-2"></i>Face Data (Opsional)
+                        </label>
+                        <p class="text-xs text-black font-semibold mt-1">Data wajah akan diisi melalui aplikasi mobile
+                        </p>
+                    </div>
+
+                    <div class="flex items-center justify-end pt-6 space-x-3 border-t-4 border-black">
+                        <button type="button" onclick="closeModal('addUserModal')"
+                            class="neo-button bg-gray-300 text-black px-6 py-3 uppercase font-black">
+                            <i class="fas fa-times mr-2"></i>Batal
+                        </button>
+                        <button type="submit" class="neo-button bg-electric text-white px-6 py-3 uppercase font-black">
+                            <i class="fas fa-save mr-2"></i>Simpan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Edit User Modal -->
+        <div id="editUserModal"
+            class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50 p-4">
+            <div class="modal-overlay absolute w-full h-full bg-black/60"></div>
+
+            <div class="modal-container neo-modal bg-white w-full md:max-w-md mx-auto z-50 p-6">
+                <div class="flex justify-between items-center pb-3 border-b-4 border-black mb-4">
+                    <p class="text-xl font-black text-black uppercase">
+                        <i class="fas fa-edit mr-2"></i>Edit User
+                    </p>
+                    <button onclick="closeModal('editUserModal')"
+                        class="text-black hover:text-gray-700 text-3xl font-black">
+                        ×
+                    </button>
+                </div>
+
+                <form id="editUserForm" class="space-y-4">
+                    @csrf
+                    @method('PUT')
+                    <input type="hidden" id="edit_user_id" name="id">
+
+                    <div>
+                        <label class="block text-black text-sm font-black mb-2 uppercase">
+                            <i class="fas fa-id-badge mr-2"></i>NIP
+                        </label>
+                        <input type="text" id="edit_nip" name="nip" required
+                            class="neo-input w-full py-3 px-4 text-black bg-white">
+                    </div>
+
+                    <div>
+                        <label class="block text-black text-sm font-black mb-2 uppercase">
+                            <i class="fas fa-user mr-2"></i>Nama Lengkap
+                        </label>
+                        <input type="text" id="edit_fullName" name="fullName" required
+                            class="neo-input w-full py-3 px-4 text-black bg-white">
+                    </div>
+
+                    <div>
+                        <label class="block text-black text-sm font-black mb-2 uppercase">
+                            <i class="fas fa-envelope mr-2"></i>Email
+                        </label>
+                        <input type="email" id="edit_email" name="email" required
+                            class="neo-input w-full py-3 px-4 text-black bg-white">
+                    </div>
+
+                    <div>
+                        <label class="block text-black text-sm font-black mb-2 uppercase">
+                            <i class="fas fa-lock mr-2"></i>Password Baru (Opsional)
+                        </label>
+                        <input type="password" id="edit_password" name="password"
+                            class="neo-input w-full py-3 px-4 text-black bg-white"
+                            placeholder="Kosongkan jika tidak ingin mengubah password">
+                        <p class="text-xs text-gray-600 mt-1 font-semibold">
+                            <i class="fas fa-info-circle mr-1"></i>Isi hanya jika ingin reset password user
+                        </p>
+                    </div>
+
+                    <div class="flex items-center justify-end pt-6 space-x-3 border-t-4 border-black">
+                        <button type="button" onclick="closeModal('editUserModal')"
+                            class="neo-button bg-gray-300 text-black px-6 py-3 uppercase font-black">
+                            <i class="fas fa-times mr-2"></i>Batal
+                        </button>
+                        <button type="submit"
+                            class="neo-button bg-yellow-400 text-black px-6 py-3 uppercase font-black">
+                            <i class="fas fa-save mr-2"></i>Update
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- View User Modal -->
+        <div id="viewUserModal"
+            class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50 p-4">
+            <div class="modal-overlay absolute w-full h-full bg-black/60"></div>
+
+            <div class="modal-container neo-modal bg-white w-full md:max-w-lg mx-auto z-50 p-6">
+                <div class="flex justify-between items-center pb-3 border-b-4 border-black mb-4">
+                    <p class="text-xl font-black text-black uppercase">
+                        <i class="fas fa-user-circle mr-2"></i>Detail User
+                    </p>
+                    <button onclick="closeModal('viewUserModal')"
+                        class="text-black hover:text-gray-700 text-3xl font-black">
+                        ×
+                    </button>
+                </div>
+
+                <div id="userDetailContent">
+                    <!-- Content will be loaded dynamically -->
+                </div>
+
+                <div class="flex items-center justify-end pt-6 border-t-4 border-black mt-6">
+                    <button type="button" onclick="closeModal('viewUserModal')"
+                        class="neo-button bg-gray-300 text-black px-6 py-3 uppercase font-black">
+                        <i class="fas fa-times mr-2"></i>Tutup
                     </button>
                 </div>
             </div>
+        </div>
 
-            <div class="overflow-x-auto">
-                <table class="min-w-full">
-                    <thead class="border-b-4 border-black">
-                        <tr>
-                            <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-black">
-                                <i class="fas fa-id-badge mr-2"></i>NIP
-                            </th>
-                            <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-black">
-                                <i class="fas fa-user mr-2"></i>Nama Lengkap
-                            </th>
-                            <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-black">
-                                <i class="fas fa-envelope mr-2"></i>Email
-                            </th>
-                            <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-black">
-                                <i class="fas fa-camera mr-2"></i>Status Face
-                            </th>
-                            <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-black">
-                                <i class="fas fa-calendar mr-2"></i>Tanggal Dibuat
-                            </th>
-                            <th class="px-6 py-4 text-center text-xs font-black uppercase tracking-widest text-black">
-                                <i class="fas fa-cog mr-2"></i>Aksi
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($users as $user)
-                            <tr class="table-row-neo">
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-black text-black">{{ $user['data']['nip'] ?? '-' }}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        <div class="flex-shrink-0">
+        <!-- Attendance History Modal -->
+        <div id="attendanceModal"
+            class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50 p-4">
+            <div class="modal-overlay absolute w-full h-full bg-black/60"></div>
+
+            <div
+                class="modal-container neo-modal bg-white w-full md:max-w-4xl mx-auto z-50 p-6 max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center pb-3 border-b-4 border-black mb-4">
+                    <p class="text-xl font-black text-black uppercase">
+                        <i class="fas fa-calendar-check mr-2"></i>Riwayat Absensi - <span
+                            id="attendance_user_name"></span>
+                    </p>
+                    <button onclick="closeModal('attendanceModal')"
+                        class="text-black hover:text-gray-700 text-3xl font-black">
+                        ×
+                    </button>
+                </div>
+
+                <div id="attendanceContent" class="space-y-4">
+                    <!-- Content will be loaded dynamically -->
+                </div>
+
+                <div class="flex items-center justify-end pt-6 border-t-4 border-black mt-6">
+                    <button type="button" onclick="closeModal('attendanceModal')"
+                        class="neo-button bg-gray-300 text-black px-6 py-3 uppercase font-black">
+                        <i class="fas fa-times mr-2"></i>Tutup
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- End Users Section -->
+
+        <!-- Locations Section -->
+        <div id="locationsSection" class="hidden">
+
+            <!-- Statistics Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="neo-card bg-white p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-black uppercase tracking-widest mb-2 text-black"
+                                style="letter-spacing: 0.15em !important;">Total Lokasi</p>
+                            <p class="text-5xl font-black text-black" id="totalLocations">{{ count($locations) }}</p>
+                        </div>
+                        <div class="neo-card bg-electric p-4">
+                            <i class="fas fa-map-marked-alt text-white text-4xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="neo-card bg-white p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-black uppercase tracking-widest mb-2 text-black"
+                                style="letter-spacing: 0.15em !important;">Lokasi Aktif</p>
+                            <p class="text-5xl font-black text-black" id="activeLocations">
+                                {{ collect($locations)->filter(fn($loc) => $loc['data']['isActive'] ?? false)->count() }}
+                            </p>
+                        </div>
+                        <div class="neo-card bg-vibrant-green p-4">
+                            <i class="fas fa-check-circle text-white text-4xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="neo-card bg-white p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-black uppercase tracking-widest mb-2 text-black"
+                                style="letter-spacing: 0.15em !important;">Tidak Aktif</p>
+                            <p class="text-5xl font-black text-black" id="inactiveLocations">
+                                {{ collect($locations)->filter(fn($loc) => !($loc['data']['isActive'] ?? true))->count() }}
+                            </p>
+                        </div>
+                        <div class="neo-card bg-yellow-400 p-4">
+                            <i class="fas fa-ban text-black text-4xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Locations Table -->
+            <div class="neo-card bg-white overflow-hidden">
+                <div class="px-6 py-5 border-b-4 border-black">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-2xl font-black text-black uppercase">
+                            <i class="fas fa-list mr-3"></i>Daftar Lokasi
+                        </h2>
+                        <button onclick="openModal('addLocationModal')"
+                            class="neo-button bg-electric text-white px-8 py-3 uppercase">
+                            <i class="fas fa-plus mr-2"></i>Tambah Lokasi
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full">
+                        <thead class="border-b-4 border-black">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-black">
+                                    <i class="fas fa-map-pin mr-2"></i>Nama Lokasi
+                                </th>
+                                <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-black">
+                                    <i class="fas fa-compass mr-2"></i>Koordinat
+                                </th>
+                                <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-black">
+                                    <i class="fas fa-toggle-on mr-2"></i>Status
+                                </th>
+                                <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-black">
+                                    <i class="fas fa-calendar mr-2"></i>Tanggal Dibuat
+                                </th>
+                                <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-black">
+                                    <i class="fas fa-cog mr-2"></i>Aksi
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white">
+                            @forelse($locations as $location)
+                                <tr class="table-row-neo">
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center space-x-3">
                                             <div
                                                 class="neo-card bg-electric h-12 w-12 flex items-center justify-center text-white font-black text-lg">
-                                                {{ strtoupper(substr($user['data']['fullName'] ?? 'U', 0, 1)) }}
+                                                <i class="fas fa-location-dot"></i>
                                             </div>
+                                            <span class="font-bold text-black">{{ $location['data']['name'] ?? '-' }}</span>
                                         </div>
-                                        <div class="ml-4">
-                                            <div class="text-sm font-bold text-black">
-                                                {{ $user['data']['fullName'] ?? '-' }}
-                                            </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-black font-semibold text-sm">
+                                        {{ number_format($location['data']['latitude'] ?? 0, 6) }},
+                                        {{ number_format($location['data']['longitude'] ?? 0, 6) }}
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        @if($location['data']['isActive'] ?? true)
+                                            <span
+                                                class="neo-card bg-vibrant-green text-white px-3 py-1 text-xs font-black uppercase inline-block">
+                                                <i class="fas fa-check mr-1"></i>Aktif
+                                            </span>
+                                        @else
+                                            <span
+                                                class="neo-card bg-red-500 text-white px-3 py-1 text-xs font-black uppercase inline-block">
+                                                <i class="fas fa-times mr-1"></i>Nonaktif
+                                            </span>
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-4 text-black font-semibold text-sm">
+                                        {{ isset($location['data']['createdAt']) ? \Carbon\Carbon::parse($location['data']['createdAt'])->format('d M Y H:i') : '-' }}
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex space-x-2">
+                                            <button onclick="viewLocation('{{ $location['id'] }}')"
+                                                class="neo-button bg-electric text-white px-3 py-2 text-xs">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button onclick="editLocation('{{ $location['id'] }}')"
+                                                class="neo-button bg-yellow-400 text-black px-3 py-2 text-xs">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button onclick="deleteLocation('{{ $location['id'] }}')"
+                                                class="neo-button bg-red-500 text-white px-3 py-2 text-xs">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
                                         </div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-semibold text-black">{{ $user['data']['email'] ?? '-' }}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    @if (!empty($user['data']['faceDataBase64'] ?? ''))
-                                        <span
-                                            class="neo-card bg-vibrant-green px-4 py-2 inline-flex text-xs font-black uppercase text-white">
-                                            <i class="fas fa-check-circle mr-2"></i> Terdaftar
-                                        </span>
-                                    @else
-                                        <span
-                                            class="neo-card bg-red-500 px-4 py-2 inline-flex text-xs font-black uppercase text-white">
-                                            <i class="fas fa-times-circle mr-2"></i> Belum
-                                        </span>
-                                    @endif
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-black">
-                                    {{ isset($user['data']['createdAt']) ? \Carbon\Carbon::parse($user['data']['createdAt'])->format('d M Y H:i') : '-' }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
-                                    <button onclick="viewUser('{{ $user['id'] }}')"
-                                        class="neo-button bg-electric text-white px-3 py-2 mr-2" title="Lihat Detail">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                    <button onclick="editUser('{{ $user['id'] }}')"
-                                        class="neo-button bg-yellow-400 text-black px-3 py-2 mr-2" title="Edit">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button
-                                        onclick="deleteUser('{{ $user['id'] }}', '{{ addslashes($user['data']['fullName'] ?? 'User') }}')"
-                                        class="neo-button bg-red-500 text-white px-3 py-2" title="Hapus">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="6" class="px-6 py-16 text-center">
-                                    <div class="text-black">
-                                        <i class="fas fa-inbox text-8xl mb-4"></i>
-                                        <p class="text-2xl font-black uppercase">Belum ada data user</p>
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add User Modal -->
-    <div id="addUserModal"
-        class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50 p-4">
-        <div class="modal-overlay absolute w-full h-full bg-black/60"></div>
-
-        <div class="modal-container neo-modal bg-white w-full md:max-w-md mx-auto z-50 p-6">
-            <div class="flex justify-between items-center pb-3 border-b-4 border-black mb-4">
-                <p class="text-xl font-black text-black uppercase">
-                    <i class="fas fa-user-plus mr-2"></i>Tambah User Baru
-                </p>
-                <button onclick="closeModal('addUserModal')" class="text-black hover:text-gray-700 text-3xl font-black">
-                    ×
-                </button>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="px-6 py-12 text-center">
+                                        <i class="fas fa-map-marked-alt text-8xl font-black text-gray-300 mb-4"></i>
+                                        <p class="text-black text-2xl font-black uppercase">Belum ada data lokasi</p>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
-            <form id="addUserForm" class="space-y-4">
-                @csrf
-                <div>
-                    <label class="block text-black text-sm font-black mb-2 uppercase">
-                        <i class="fas fa-id-badge mr-2"></i>NIP
-                    </label>
-                    <input type="text" id="nip" name="nip" required
-                        class="neo-input w-full py-3 px-4 text-black bg-white" placeholder="Masukkan NIP">
+            <!-- Add Location Modal -->
+            <div id="addLocationModal"
+                class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50 p-4">
+                <div class="modal-overlay absolute w-full h-full bg-black/60"></div>
+
+                <div class="modal-container neo-modal bg-white w-full md:max-w-md mx-auto z-50 p-6">
+                    <div class="flex justify-between items-center pb-3 border-b-4 border-black mb-4">
+                        <p class="text-xl font-black text-black uppercase">
+                            <i class="fas fa-plus-circle mr-2"></i>Tambah Lokasi Baru
+                        </p>
+                        <button onclick="closeModal('addLocationModal')"
+                            class="text-black hover:text-gray-700 text-3xl font-black">
+                            ×
+                        </button>
+                    </div>
+
+                    <form id="addLocationForm" class="space-y-4">
+                        <div>
+                            <label class="block text-black font-black uppercase text-xs mb-2">
+                                <i class="fas fa-map-pin mr-1"></i>Nama Lokasi
+                            </label>
+                            <input type="text" id="locationName" name="name" required
+                                class="neo-input w-full py-3 px-4 text-black bg-white"
+                                placeholder="Masukkan nama lokasi">
+                        </div>
+
+                        <div>
+                            <label class="block text-black font-black uppercase text-xs mb-2">
+                                <i class="fas fa-map-marker-alt mr-1"></i>Latitude
+                            </label>
+                            <input type="number" step="any" id="locationLatitude" name="latitude" required
+                                class="neo-input w-full py-3 px-4 text-black bg-white" placeholder="-7.747262">
+                        </div>
+
+                        <div>
+                            <label class="block text-black font-black uppercase text-xs mb-2">
+                                <i class="fas fa-map-marker-alt mr-1"></i>Longitude
+                            </label>
+                            <input type="number" step="any" id="locationLongitude" name="longitude" required
+                                class="neo-input w-full py-3 px-4 text-black bg-white" placeholder="110.346873">
+                        </div>
+
+                        <div class="flex items-center space-x-3">
+                            <input type="checkbox" id="locationIsActive" name="isActive" checked
+                                class="h-5 w-5 border-3 border-black">
+                            <label for="locationIsActive" class="text-black font-black uppercase text-sm">
+                                <i class="fas fa-toggle-on mr-1"></i>Aktifkan Lokasi
+                            </label>
+                        </div>
+
+                        <div class="flex space-x-3 pt-4">
+                            <button type="button" onclick="closeModal('addLocationModal')"
+                                class="neo-button bg-gray-300 text-black px-6 py-3 uppercase flex-1">
+                                Batal
+                            </button>
+                            <button type="submit" class="neo-button bg-electric text-white px-6 py-3 uppercase flex-1">
+                                <i class="fas fa-save mr-2"></i>Simpan
+                            </button>
+                        </div>
+                    </form>
                 </div>
-
-                <div>
-                    <label class="block text-black text-sm font-black mb-2 uppercase">
-                        <i class="fas fa-user mr-2"></i>Nama Lengkap
-                    </label>
-                    <input type="text" id="fullName" name="fullName" required
-                        class="neo-input w-full py-3 px-4 text-black bg-white" placeholder="Masukkan nama lengkap">
-                </div>
-
-                <div>
-                    <label class="block text-black text-sm font-black mb-2 uppercase">
-                        <i class="fas fa-envelope mr-2"></i>Email
-                    </label>
-                    <input type="email" id="email" name="email" required
-                        class="neo-input w-full py-3 px-4 text-black bg-white" placeholder="email@example.com">
-                </div>
-
-                <div>
-                    <label class="block text-black text-sm font-black mb-2 uppercase">
-                        <i class="fas fa-lock mr-2"></i>Password
-                    </label>
-                    <input type="password" id="password" name="password" required
-                        class="neo-input w-full py-3 px-4 text-black bg-white" placeholder="Masukkan password">
-                </div>
-
-                <div class="neo-card bg-yellow-100 p-4">
-                    <label class="block text-black text-xs font-black uppercase">
-                        <i class="fas fa-camera mr-2"></i>Face Data (Opsional)
-                    </label>
-                    <p class="text-xs text-black font-semibold mt-1">Data wajah akan diisi melalui aplikasi mobile</p>
-                </div>
-
-                <div class="flex items-center justify-end pt-6 space-x-3 border-t-4 border-black">
-                    <button type="button" onclick="closeModal('addUserModal')"
-                        class="neo-button bg-gray-300 text-black px-6 py-3 uppercase font-black">
-                        <i class="fas fa-times mr-2"></i>Batal
-                    </button>
-                    <button type="submit" class="neo-button bg-electric text-white px-6 py-3 uppercase font-black">
-                        <i class="fas fa-save mr-2"></i>Simpan
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Edit User Modal -->
-    <div id="editUserModal"
-        class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50 p-4">
-        <div class="modal-overlay absolute w-full h-full bg-black/60"></div>
-
-        <div class="modal-container neo-modal bg-white w-full md:max-w-md mx-auto z-50 p-6">
-            <div class="flex justify-between items-center pb-3 border-b-4 border-black mb-4">
-                <p class="text-xl font-black text-black uppercase">
-                    <i class="fas fa-edit mr-2"></i>Edit User
-                </p>
-                <button onclick="closeModal('editUserModal')"
-                    class="text-black hover:text-gray-700 text-3xl font-black">
-                    ×
-                </button>
             </div>
 
-            <form id="editUserForm" class="space-y-4">
-                @csrf
-                @method('PUT')
-                <input type="hidden" id="edit_user_id" name="id">
+            <!-- Edit Location Modal -->
+            <div id="editLocationModal"
+                class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50 p-4">
+                <div class="modal-overlay absolute w-full h-full bg-black/60"></div>
 
-                <div>
-                    <label class="block text-black text-sm font-black mb-2 uppercase">
-                        <i class="fas fa-id-badge mr-2"></i>NIP
-                    </label>
-                    <input type="text" id="edit_nip" name="nip"
-                        class="neo-input w-full py-3 px-4 text-gray-600 bg-gray-100" readonly>
+                <div class="modal-container neo-modal bg-white w-full md:max-w-md mx-auto z-50 p-6">
+                    <div class="flex justify-between items-center pb-3 border-b-4 border-black mb-4">
+                        <p class="text-xl font-black text-black uppercase">
+                            <i class="fas fa-edit mr-2"></i>Edit Lokasi
+                        </p>
+                        <button onclick="closeModal('editLocationModal')"
+                            class="text-black hover:text-gray-700 text-3xl font-black">
+                            ×
+                        </button>
+                    </div>
+
+                    <form id="editLocationForm" class="space-y-4">
+                        <input type="hidden" id="editLocationId">
+
+                        <div>
+                            <label class="block text-black font-black uppercase text-xs mb-2">
+                                <i class="fas fa-map-pin mr-1"></i>Nama Lokasi
+                            </label>
+                            <input type="text" id="editLocationName" name="name" required
+                                class="neo-input w-full py-3 px-4 text-black bg-white">
+                        </div>
+
+                        <div>
+                            <label class="block text-black font-black uppercase text-xs mb-2">
+                                <i class="fas fa-map-marker-alt mr-1"></i>Latitude
+                            </label>
+                            <input type="number" step="any" id="editLocationLatitude" name="latitude" required
+                                class="neo-input w-full py-3 px-4 text-black bg-white">
+                        </div>
+
+                        <div>
+                            <label class="block text-black font-black uppercase text-xs mb-2">
+                                <i class="fas fa-map-marker-alt mr-1"></i>Longitude
+                            </label>
+                            <input type="number" step="any" id="editLocationLongitude" name="longitude" required
+                                class="neo-input w-full py-3 px-4 text-black bg-white">
+                        </div>
+
+                        <div class="flex items-center space-x-3">
+                            <input type="checkbox" id="editLocationIsActive" name="isActive"
+                                class="h-5 w-5 border-3 border-black">
+                            <label for="editLocationIsActive" class="text-black font-black uppercase text-sm">
+                                <i class="fas fa-toggle-on mr-1"></i>Aktifkan Lokasi
+                            </label>
+                        </div>
+
+                        <div class="flex space-x-3 pt-4">
+                            <button type="button" onclick="closeModal('editLocationModal')"
+                                class="neo-button bg-gray-300 text-black px-6 py-3 uppercase flex-1">
+                                Batal
+                            </button>
+                            <button type="submit"
+                                class="neo-button bg-yellow-400 text-black px-6 py-3 uppercase flex-1">
+                                <i class="fas fa-save mr-2"></i>Update
+                            </button>
+                        </div>
+                    </form>
                 </div>
+            </div>
 
-                <div>
-                    <label class="block text-black text-sm font-black mb-2 uppercase">
-                        <i class="fas fa-user mr-2"></i>Nama Lengkap
-                    </label>
-                    <input type="text" id="edit_fullName" name="fullName" required
-                        class="neo-input w-full py-3 px-4 text-black bg-white">
-                </div>
+            <!-- View Location Modal -->
+            <div id="viewLocationModal"
+                class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50 p-4">
+                <div class="modal-overlay absolute w-full h-full bg-black/60"></div>
 
-                <div>
-                    <label class="block text-black text-sm font-black mb-2 uppercase">
-                        <i class="fas fa-envelope mr-2"></i>Email
-                    </label>
-                    <input type="email" id="edit_email" name="email" required
-                        class="neo-input w-full py-3 px-4 text-black bg-white">
-                </div>
+                <div class="modal-container neo-modal bg-white w-full md:max-w-lg mx-auto z-50 p-6">
+                    <div class="flex justify-between items-center pb-3 border-b-4 border-black mb-4">
+                        <p class="text-xl font-black text-black uppercase">
+                            <i class="fas fa-info-circle mr-2"></i>Detail Lokasi
+                        </p>
+                        <button onclick="closeModal('viewLocationModal')"
+                            class="text-black hover:text-gray-700 text-3xl font-black">
+                            ×
+                        </button>
+                    </div>
 
-                <div class="flex items-center justify-end pt-6 space-x-3 border-t-4 border-black">
-                    <button type="button" onclick="closeModal('editUserModal')"
-                        class="neo-button bg-gray-300 text-black px-6 py-3 uppercase font-black">
-                        <i class="fas fa-times mr-2"></i>Batal
-                    </button>
-                    <button type="submit" class="neo-button bg-yellow-400 text-black px-6 py-3 uppercase font-black">
-                        <i class="fas fa-save mr-2"></i>Update
+                    <div id="locationDetailContent"></div>
+
+                    <button onclick="closeModal('viewLocationModal')"
+                        class="neo-button bg-red-500 text-white px-6 py-3 uppercase w-full mt-6">
+                        <i class="fas fa-times mr-2"></i>Tutup
                     </button>
                 </div>
-            </form>
+            </div>
+
         </div>
+        <!-- End Locations Section -->
+
     </div>
-
-    <!-- View User Modal -->
-    <div id="viewUserModal"
-        class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50 p-4">
-        <div class="modal-overlay absolute w-full h-full bg-black/60"></div>
-
-        <div class="modal-container neo-modal bg-white w-full md:max-w-lg mx-auto z-50 p-6">
-            <div class="flex justify-between items-center pb-3 border-b-4 border-black mb-4">
-                <p class="text-xl font-black text-black uppercase">
-                    <i class="fas fa-user-circle mr-2"></i>Detail User
-                </p>
-                <button onclick="closeModal('viewUserModal')"
-                    class="text-black hover:text-gray-700 text-3xl font-black">
-                    ×
-                </button>
-            </div>
-
-            <div id="userDetailContent">
-                <!-- Content will be loaded dynamically -->
-            </div>
-
-            <div class="flex items-center justify-end pt-6 border-t-4 border-black mt-6">
-                <button type="button" onclick="closeModal('viewUserModal')"
-                    class="neo-button bg-gray-300 text-black px-6 py-3 uppercase font-black">
-                    <i class="fas fa-times mr-2"></i>Tutup
-                </button>
-            </div>
-        </div>
-    </div>
+    <!-- End Main Content -->
 
     <script>
         // Modal Functions
@@ -595,7 +1001,7 @@
 
                 if (data.success) {
                     const user = data.data.data || data.data; // Handle nested structure
-                    document.getElementById('edit_user_id').value = data.data.id || userId;
+                    document.getElementById('edit_user_id').value = userId;
                     document.getElementById('edit_nip').value = user.nip || '';
                     document.getElementById('edit_fullName').value = user.fullName || '';
                     document.getElementById('edit_email').value = user.email || '';
@@ -613,10 +1019,18 @@
             e.preventDefault();
 
             const userId = document.getElementById('edit_user_id').value;
+            const password = document.getElementById('edit_password').value;
+
             const formData = {
+                nip: document.getElementById('edit_nip').value,
                 fullName: document.getElementById('edit_fullName').value,
                 email: document.getElementById('edit_email').value
             };
+
+            // Only include password if it's filled
+            if (password && password.trim() !== '') {
+                formData.password = password;
+            }
 
             try {
                 const response = await fetch(`/api/users/${userId}`, {
@@ -668,6 +1082,124 @@
             }
         }
 
+        // View Attendance History
+        async function viewAttendance(userId, userName) {
+            try {
+                // Clear previous content immediately
+                document.getElementById('attendanceContent').innerHTML = `
+                    <div class="neo-card bg-white p-6 text-center">
+                        <i class="fas fa-spinner fa-spin text-4xl text-black mb-3"></i>
+                        <p class="text-lg font-black text-black">Loading...</p>
+                    </div>
+                `;
+
+                document.getElementById('attendance_user_name').textContent = userName;
+
+                // Add timestamp to prevent caching
+                const timestamp = new Date().getTime();
+                const response = await fetch(`/api/attendance/user/${userId}?t=${timestamp}`, {
+                    cache: 'no-cache',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                });
+                const data = await response.json();
+
+                console.log(`=== Attendance for ${userName} (${userId}) ===`);
+                console.log('API Response:', data);
+                console.log('Data array:', JSON.stringify(data.data, null, 2));
+
+                if (data.success && data.data && data.data.length > 0) {
+                    console.log('First record:', data.data[0]);
+                    console.log('All record IDs:', data.data.map(r => r.id));
+
+                    // Force DOM re-creation with unique key to prevent caching
+                    const uniqueKey = `attendance-${userId}-${timestamp}`;
+
+                    const attendanceHTML = `
+                        <div class="neo-card bg-white overflow-hidden" data-key="${uniqueKey}">
+                            <table class="min-w-full">
+                                <thead class="border-b-4 border-black">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-black">
+                                            <i class="fas fa-calendar mr-2"></i>Tanggal
+                                        </th>
+                                        <th class="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-black">
+                                            <i class="fas fa-clock mr-2"></i>Check In
+                                        </th>
+                                        <th class="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-black">
+                                            <i class="fas fa-clock mr-2"></i>Check Out
+                                        </th>
+                                        <th class="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-black">
+                                            <i class="fas fa-map-marker-alt mr-2"></i>Lokasi
+                                        </th>
+                                        <th class="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-black">
+                                            <i class="fas fa-info-circle mr-2"></i>Status
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${data.data.map(record => {
+                        // Parse timestamp - handle Firestore format
+                        let timestamp = record.data.checkInTime || record.data.createdAt || record.data.timestamp;
+                        let dateObj = new Date();
+
+                        if (timestamp && timestamp._seconds) {
+                            dateObj = new Date(timestamp._seconds * 1000);
+                        } else if (timestamp) {
+                            dateObj = new Date(timestamp);
+                        }
+
+                        return `
+                                        <tr class="table-row-neo">
+                                            <td class="px-4 py-3 text-sm font-bold text-black">
+                                                ${dateObj.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                            </td>
+                                            <td class="px-4 py-3 text-sm font-semibold text-black">
+                                                ${dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                            </td>
+                                            <td class="px-4 py-3 text-sm font-semibold text-black">
+                                                ${record.data.checkOutTime ? new Date(record.data.checkOutTime).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                                            </td>
+                                            <td class="px-4 py-3 text-sm font-semibold text-black">
+                                                ${record.data.officeName || '-'}
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <span class="neo-card ${record.data.checkOutTime ? 'bg-vibrant-green' : 'bg-yellow-400'} px-3 py-1 text-xs font-black uppercase text-white">
+                                                    ${record.data.checkOutTime ? 'Selesai' : 'Check-in Saja'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    `}).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `
+                    // Force browser to completely re-render by removing and recreating content
+                    const contentDiv = document.getElementById('attendanceContent');
+                    contentDiv.innerHTML = ''; // Clear first
+                    setTimeout(() => {
+                        contentDiv.innerHTML = attendanceHTML; // Then set new content
+                        console.log('Table rendered for:', userName);
+                    }, 10);
+                } else {
+                    console.log('No attendance data or empty array');
+                    document.getElementById('attendanceContent').innerHTML = `
+                        <div class="neo-card bg-yellow-100 p-6 text-center">
+                            <i class="fas fa-exclamation-triangle text-4xl text-yellow-600 mb-3"></i>
+                            <p class="text-lg font-black text-black">Belum ada riwayat absensi</p>
+                        </div>
+                    `;
+                }
+
+                openModal('attendanceModal');
+            } catch (error) {
+                console.error('Attendance error:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+
         // Close modal when clicking outside
         document.querySelectorAll('.modal-overlay').forEach(overlay => {
             overlay.addEventListener('click', function () {
@@ -676,6 +1208,201 @@
                 document.body.classList.remove('modal-active');
             });
         });
+
+        // ==================== TAB SWITCHING ====================
+        function switchTab(tabName) {
+            const usersSection = document.getElementById('usersSection');
+            const locationsSection = document.getElementById('locationsSection');
+            const usersTab = document.getElementById('usersTab');
+            const locationsTab = document.getElementById('locationsTab');
+
+            if (tabName === 'users') {
+                // Show/hide sections
+                usersSection.classList.remove('hidden');
+                locationsSection.classList.add('hidden');
+
+                // Toggle active class
+                usersTab.classList.add('active');
+                locationsTab.classList.remove('active');
+            } else if (tabName === 'locations') {
+                // Show/hide sections
+                usersSection.classList.add('hidden');
+                locationsSection.classList.remove('hidden');
+
+                // Toggle active class
+                locationsTab.classList.add('active');
+                usersTab.classList.remove('active');
+            }
+        }
+
+        // ==================== LOCATIONS CRUD ====================
+
+        // Add Location
+        document.getElementById('addLocationForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const formData = {
+                name: document.getElementById('locationName').value,
+                latitude: parseFloat(document.getElementById('locationLatitude').value),
+                longitude: parseFloat(document.getElementById('locationLongitude').value),
+                isActive: document.getElementById('locationIsActive').checked
+            };
+
+            try {
+                const response = await fetch('/api/locations', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('Location added successfully!');
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        });
+
+        // View Location
+        async function viewLocation(id) {
+            try {
+                const response = await fetch(`/api/locations/${id}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    const location = data.data.data || data.data;
+                    const content = `
+                        <div class="space-y-4">
+                            <div class="neo-card bg-electric p-5 text-center">
+                                <div class="neo-card bg-white h-20 w-20 mx-auto flex items-center justify-center text-black font-black text-4xl mb-3">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                </div>
+                                <h3 class="text-xl font-black text-white uppercase">${location.name || '-'}</h3>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="neo-card bg-white p-3">
+                                    <p class="text-xs font-black uppercase text-black mb-1"><i class="fas fa-compass mr-1"></i>Latitude</p>
+                                    <p class="text-black font-bold text-base">${location.latitude || '-'}</p>
+                                </div>
+                                <div class="neo-card bg-white p-3">
+                                    <p class="text-xs font-black uppercase text-black mb-1"><i class="fas fa-compass mr-1"></i>Longitude</p>
+                                    <p class="text-black font-bold text-base">${location.longitude || '-'}</p>
+                                </div>
+                                <div class="neo-card bg-white p-3">
+                                    <p class="text-xs font-black uppercase text-black mb-1"><i class="fas fa-toggle-on mr-1"></i>Status</p>
+                                    <p class="font-black text-base ${location.isActive ? 'text-green-600' : 'text-red-600'}">
+                                        ${location.isActive ? '<i class="fas fa-check-circle mr-1"></i> Aktif' : '<i class="fas fa-times-circle mr-1"></i> Nonaktif'}
+                                    </p>
+                                </div>
+                                <div class="neo-card bg-white p-3">
+                                    <p class="text-xs font-black uppercase text-black mb-1"><i class="fas fa-calendar mr-1"></i>Dibuat</p>
+                                    <p class="text-black font-bold text-sm">${location.createdAt ? new Date(location.createdAt).toLocaleDateString('id-ID') : '-'}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    document.getElementById('locationDetailContent').innerHTML = content;
+                    openModal('viewLocationModal');
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        // Edit Location
+        async function editLocation(id) {
+            try {
+                const response = await fetch(`/api/locations/${id}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    const location = data.data.data || data.data;
+                    document.getElementById('editLocationId').value = id;
+                    document.getElementById('editLocationName').value = location.name;
+                    document.getElementById('editLocationLatitude').value = location.latitude;
+                    document.getElementById('editLocationLongitude').value = location.longitude;
+                    document.getElementById('editLocationIsActive').checked = location.isActive;
+                    openModal('editLocationModal');
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        // Update Location
+        document.getElementById('editLocationForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const id = document.getElementById('editLocationId').value;
+            const formData = {
+                name: document.getElementById('editLocationName').value,
+                latitude: parseFloat(document.getElementById('editLocationLatitude').value),
+                longitude: parseFloat(document.getElementById('editLocationLongitude').value),
+                isActive: document.getElementById('editLocationIsActive').checked
+            };
+
+            try {
+                const response = await fetch(`/api/locations/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('Location updated successfully!');
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        });
+
+        // Delete Location
+        async function deleteLocation(id) {
+            if (!confirm('Apakah Anda yakin ingin menghapus lokasi ini?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/locations/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('Location deleted successfully!');
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
     </script>
 </body>
 

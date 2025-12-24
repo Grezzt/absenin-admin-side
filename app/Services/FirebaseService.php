@@ -83,12 +83,72 @@ class FirebaseService
 
   /**
    * Get all documents from a collection
-   * Using runQuery API for better limit/pagination support
+   * Supports both top-level collections and subcollections
+   * Examples: 
+   *   - 'users' (top-level)
+   *   - 'users/abc123/attendance' (subcollection)
    */
   public function getCollection($collection, $limit = 1000)
   {
     try {
-      // Use runQuery API instead of simple GET for better limit support
+      // Check if this is a subcollection path (contains /)
+      if (strpos($collection, '/') !== false) {
+        // For subcollection, use runQuery with parent path
+        // Example: users/abc123/attendance -> run query on parent users/abc123
+
+        $pathParts = explode('/', $collection);
+        $collectionId = array_pop($pathParts);
+        $parentPath = implode('/', $pathParts);
+
+        \Log::info('Fetching subcollection via parent runQuery', [
+          'fullPath' => $collection,
+          'parentPath' => $parentPath,
+          'collectionId' => $collectionId
+        ]);
+
+        // Use direct GET to list documents in subcollection
+        $url = "{$this->baseUrl}/{$collection}";
+        \Log::info('Fetching subcollection via direct GET', ['url' => $url]);
+
+        $response = Http::withToken($this->accessToken)->get($url);
+
+        if (!$response->successful()) {
+          \Log::error('Subcollection GET failed', [
+            'status' => $response->status(),
+            'body' => $response->body()
+          ]);
+          throw new \Exception("Failed to fetch subcollection: " . $response->body());
+        }
+
+        $result = $response->json();
+
+        // Log the actual document names returned
+        $docNames = [];
+        if (isset($result['documents']) && is_array($result['documents'])) {
+          foreach ($result['documents'] as $doc) {
+            $docNames[] = $doc['name'] ?? 'unknown';
+          }
+        }
+        \Log::info('GET response document names', ['docNames' => $docNames]);
+
+        $documents = [];
+
+        // Firestore GET returns documents in 'documents' array
+        if (isset($result['documents']) && is_array($result['documents'])) {
+          foreach ($result['documents'] as $doc) {
+            $documents[] = [
+              'id' => $this->getDocumentId($doc['name']),
+              'data' => $this->parseFirestoreDocument($doc['fields'] ?? [])
+            ];
+          }
+        }
+
+        \Log::info('GET returned documents', ['count' => count($documents)]);
+
+        return $documents;
+      }
+
+      // For top-level collection, use runQuery API
       $query = [
         'structuredQuery' => [
           'from' => [['collectionId' => $collection]],
